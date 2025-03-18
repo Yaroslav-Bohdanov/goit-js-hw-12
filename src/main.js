@@ -5,7 +5,7 @@ import { createGalleryMarkup, createLightBox } from './js/render-functions';
 const elements = {
   searchForm: document.querySelector('.form'),
   imageGallery: document.querySelector('.gallery'),
-  loaderBackdrop: document.querySelector('.backdrop'),
+  loader: document.querySelector('.loader'),
   loadMoreBtn: document.querySelector('.load-more-btn'),
 };
 
@@ -14,9 +14,8 @@ let page = 1;
 const PER_PAGE = 15;
 let totalHits = 0;
 
-const displayLoader = () =>
-  elements.loaderBackdrop.classList.remove('is-hidden');
-const removeLoader = () => elements.loaderBackdrop.classList.add('is-hidden');
+const displayLoader = () => elements.loader.classList.remove('is-hidden');
+const removeLoader = () => elements.loader.classList.add('is-hidden');
 const showLoadMore = () => elements.loadMoreBtn.classList.remove('is-hidden');
 const hideLoadMore = () => elements.loadMoreBtn.classList.add('is-hidden');
 
@@ -28,6 +27,21 @@ const showErrorToast = message => {
     message,
     timeout: 5000,
   });
+};
+
+const updateGallery = hits => {
+  elements.imageGallery.insertAdjacentHTML(
+    'beforeend',
+    hits.map(createGalleryMarkup).join('')
+  );
+  createLightBox();
+};
+
+const scrollToNewImages = () => {
+  const lastItem = elements.imageGallery.lastElementChild;
+  if (lastItem) {
+    lastItem.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  }
 };
 
 const handleSearchSubmit = async event => {
@@ -51,8 +65,12 @@ const handleSearchSubmit = async event => {
     );
     totalHits = fetchedTotalHits;
 
-    elements.imageGallery.innerHTML = hits.map(createGalleryMarkup).join('');
-    createLightBox();
+    if (hits.length === 0) {
+      showErrorToast('No images found. Please try another search.');
+      return;
+    }
+
+    updateGallery(hits);
 
     if (totalHits > PER_PAGE) {
       showLoadMore();
@@ -75,16 +93,8 @@ const handleLoadMore = async () => {
 
   try {
     const { hits } = await getImages(searchQuery, page);
-    elements.imageGallery.insertAdjacentHTML(
-      'beforeend',
-      hits.map(createGalleryMarkup).join('')
-    );
-    createLightBox();
-
-    const cardHeight = document
-      .querySelector('.gallery-item')
-      .getBoundingClientRect().height;
-    window.scrollBy({ top: cardHeight * 2, behavior: 'smooth' });
+    updateGallery(hits);
+    scrollToNewImages();
 
     if (page < Math.ceil(totalHits / PER_PAGE)) {
       showLoadMore();

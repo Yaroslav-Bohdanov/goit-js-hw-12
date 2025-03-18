@@ -15,19 +15,12 @@ export async function getImages(searchTerm, page = 1) {
         safesearch: true,
         per_page: PER_PAGE,
         page,
-        lang: 'en',
       },
     });
-
-    if (response.data.hits.length === 0) {
-      throw new Error(
-        'Sorry, there are no images matching your search query. Please try again!'
-      );
-    }
 
     return response.data;
   } catch (error) {
     console.error('Error fetching images:', error);
-    throw error;
+    throw new Error('Failed to fetch images. Please try again.');
   }
 }
