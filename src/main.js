@@ -1,4 +1,7 @@
 import iziToast from 'izitoast';
+import 'izitoast/dist/css/iziToast.min.css';
+import SimpleLightbox from 'simplelightbox';
+import 'simplelightbox/dist/simple-lightbox.min.css';
 import { getImages } from './js/pixabay-api';
 import { createGalleryMarkup, createLightBox } from './js/render-functions';
 
@@ -18,6 +21,7 @@ const displayLoader = () => elements.loader.classList.remove('is-hidden');
 const removeLoader = () => elements.loader.classList.add('is-hidden');
 const showLoadMore = () => elements.loadMoreBtn.classList.remove('is-hidden');
 const hideLoadMore = () => elements.loadMoreBtn.classList.add('is-hidden');
+const clearGallery = () => (elements.imageGallery.innerHTML = '');
 
 const showErrorToast = message => {
   iziToast.error({
@@ -27,21 +31,6 @@ const showErrorToast = message => {
     message,
     timeout: 5000,
   });
-};
-
-const updateGallery = hits => {
-  elements.imageGallery.insertAdjacentHTML(
-    'beforeend',
-    hits.map(createGalleryMarkup).join('')
-  );
-  createLightBox();
-};
-
-const scrollToNewImages = () => {
-  const lastItem = elements.imageGallery.lastElementChild;
-  if (lastItem) {
-    lastItem.scrollIntoView({ behavior: 'smooth', block: 'end' });
-  }
 };
 
 const handleSearchSubmit = async event => {
@@ -54,7 +43,7 @@ const handleSearchSubmit = async event => {
   }
 
   page = 1;
-  elements.imageGallery.innerHTML = '';
+  clearGallery();
   hideLoadMore();
   displayLoader();
 
@@ -70,7 +59,8 @@ const handleSearchSubmit = async event => {
       return;
     }
 
-    updateGallery(hits);
+    elements.imageGallery.innerHTML = hits.map(createGalleryMarkup).join('');
+    createLightBox();
 
     if (totalHits > PER_PAGE) {
       showLoadMore();
@@ -93,8 +83,19 @@ const handleLoadMore = async () => {
 
   try {
     const { hits } = await getImages(searchQuery, page);
-    updateGallery(hits);
-    scrollToNewImages();
+    elements.imageGallery.insertAdjacentHTML(
+      'beforeend',
+      hits.map(createGalleryMarkup).join('')
+    );
+    createLightBox();
+
+    setTimeout(() => {
+      const lastItem = elements.imageGallery.lastElementChild;
+      if (lastItem) {
+        const itemHeight = lastItem.getBoundingClientRect().height;
+        window.scrollBy({ top: itemHeight * 2, behavior: 'smooth' });
+      }
+    }, 100);
 
     if (page < Math.ceil(totalHits / PER_PAGE)) {
       showLoadMore();
